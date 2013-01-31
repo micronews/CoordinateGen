@@ -1,0 +1,160 @@
+  
+  $wrfile = 'ALL_COORDINATES.csv' ;
+  $wrfile1 = 'BNDY_COORDINATES.csv' ;
+  $file = 'Bangalore_mla_file_list.txt' ;
+ 
+ open( FILE , $file ) ;
+ open( FILE2 , ">$wrfile" ) ;
+ open( FILE3 , ">$wrfile1" ) ;
+
+
+  while (<FILE>) {
+   
+     $fline = $_ ;
+     chomp ($fline) ;
+  
+   ($mla_area , $area_number ) = split (/_/,$fline) ;
+     $area_num = substr $area_number , 0 , 3 ;
+  #   print " $mla_area  $area_num \n" ;
+  #   print "$fline\n" ;
+  @all_lat = () ;
+  @orig_all_lat =() ;
+  @all_long = ();
+  @orig_all_long = () ;
+
+
+        $sfline = "$fline" ;
+       open(MLAFILE , $sfline);
+
+      while (<MLAFILE>) {
+     $line = $_ ;
+     chomp ($line) ;
+  # print "$line\n" ;
+
+
+     ($lat , $long ) = split ( /,/ , $line) ;
+      # round_off
+
+
+      ($bef,$aft) = split ( /\./ , $lat ) ;
+        $ll = substr $aft ,0 , 3 ;
+        $rlat = $bef.$ll ;
+
+      ($bef,$aft) = split ( /\./ , $long ) ;
+        $ll = substr $aft ,0 , 3 ;
+        $rlong = $bef.$ll ;
+
+
+   
+      #$rlat = sprintf ( "%.3f" ,$lat ) ; 
+      #$rlong = sprintf ( "%.3f" , $long ) ;
+      push(@orig_all_lat , $lat ) ; 
+      push(@orig_all_long , $long ) ; 
+      push(@all_lat , $rlat ) ;
+      push(@all_long , $rlong ) ;
+ 
+  }
+
+
+   @sort_lat = sort(@all_lat);
+   @sort_long = sort(@all_long);
+
+   $min_lat = shift(@sort_lat);
+   $max_lat =   pop(@sort_lat);
+   $min_long = shift(@sort_long); 
+   $max_long = pop(@sort_long) ; 
+     $mmin_lat = $min_lat /1000 ;
+     $mmin_long = $min_long /1000 ;
+     $mmax_lat = $max_lat /1000 ;
+     $mmax_long = $max_long /1000 ;
+   print "$mla_area,$min_lat ,$max_lat ,$min_long ,$max_long \n" ;
+
+     @temp ;
+     # print FILE2 "Latitude,Longitude\n";   ## 1
+      ## grid_jump = .001 degree ~ 100km*.001 = 100m 
+   for ( $i=$min_lat  ; $i <= $max_lat  ; $i = $i + 1 ) {
+         $hit = 0 ;
+         @temp = () ;
+  ##        print " \nFor Lat:$i  " ; 
+       for ($k=0 ; $k < @all_lat ; $k = $k +1 ) {
+               if( $all_lat[$k] eq $i ) {
+                            push(@temp , $all_long[$k] ) ;
+                            $hit = 1 ;
+ ##                print " $all_long[$k]..." ; 
+                     }
+             }     
+              
+   ##       print " \n\n\n\n " ; 
+             if ($hit == 1 ) {
+                       @ttemp = sort(@temp ) ;
+                    $imin_long = shift (@ttemp ) ;
+                    $imax_long =  pop  (@ttemp ) ;
+    ##               print " For LAT:$i   $imin_long , $imax_long \n" ;
+
+               $HofLong{$i}  = [ $imin_long , $imax_long ]  ;
+
+                  }
+   }
+
+   ## print "$min_lat , $max_lat , $min_long , $max_long" ;
+   for ( $i=$min_long  ; $i <= $max_long  ; $i= $i + 1 ) {
+  
+         $hit = 0 ; 
+         @temp = () ; 
+    ##      print " \nFor Long:$i  " ; 
+       for ($k=0 ; $k < @all_long ; $k = $k +1 ) {
+               if( $all_long[$k] == $i ) {
+                            push(@temp , $all_lat[$k] ) ;
+                            $hit = 1 ;
+     ##            print " $all_lat[$k]..." ; 
+                     }
+             }     
+   
+             if ($hit == 1 ) {
+                       @ttemp = sort(@temp ) ;
+                    $imin_lat = shift ( @ttemp ) ;
+                    $imax_lat =  pop ( @ttemp ) ;
+      ##             print "\n For LONG:$i   $imin_lat , $imax_lat \n" ;
+
+               $HofLat{$i}  = [ $imin_lat , $imax_lat ]  ;
+
+                  }
+    
+       ##   print " \n\n " ; 
+   } 
+ 
+   for ( $i=$min_lat  ; $i <= $max_lat  ; $i=$i + 1 ) {
+   for ( $j=$min_long  ; $j <= $max_long  ; $j=$j + 1 ) {
+
+          @lat_limit =  @{ $HofLat{$j} }    ; # limits for longitude
+          @long_limit = @{ $HofLong{$i}  }  ; # limits for latitude
+
+   ## print "For $i,$j :: $long_limit[0],$long_limit[1] .... $lat_limit[0],$lat_limit[1] \n" ;
+           
+           if ( $lat_limit[0] <= $i && $i <= $lat_limit[1] ) {
+           if ( $long_limit[0] <= $j && $j <= $long_limit[1] ) {
+                     $lat = $i/1000 ;
+                     $long = $j/1000 ;
+                      print FILE2 "$lat,$long, $area_num , $mla_area\n";
+          }
+        }
+ }
+ }
+
+     # print FILE3 "Latitude,Longitude\n";   ## 1
+   for ( $i=0 ; $i < @all_lat ; $i=$i+1) {
+
+                     $lat = $all_lat[$i]/1000 ;
+                     $long = $all_long[$i]/1000 ;
+      print  FILE3   "$lat , $long , $area_num , $mla_area \n" ;
+     }
+
+
+  close(MLAFILE);
+   } 
+ 
+  close(FILE);
+
+  
+
+  
